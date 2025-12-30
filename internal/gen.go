@@ -207,6 +207,26 @@ func (q Query) ArgDictNode() *pyast.Node {
 	}
 }
 
+func colTypeOverride(req *plugin.GenerateRequest, col *plugin.Column, conf Config) *Override {
+	if col.Table == nil {
+		return nil
+	}
+
+	tableName := col.Table.Name
+	if col.Table.Schema != "" && col.Table.Schema != req.Catalog.DefaultSchema {
+		tableName = col.Table.Schema + "." + col.Table.Name
+	}
+	columnRef := tableName + "." + col.Name
+
+	for _, override := range conf.Overrides {
+		if override.Column == columnRef {
+			return &override
+		}
+	}
+
+	return nil
+}
+
 func makePyType(req *plugin.GenerateRequest, col *plugin.Column, conf Config) pyType {
 	typ := pyInnerType(req, col, conf)
 	return pyType{
@@ -217,6 +237,12 @@ func makePyType(req *plugin.GenerateRequest, col *plugin.Column, conf Config) py
 }
 
 func pyInnerType(req *plugin.GenerateRequest, col *plugin.Column, conf Config) string {
+	if override := colTypeOverride(req, col, conf); override != nil {
+		if override.PyImport != "" && override.PyType != "" {
+			return override.PyImport + "." + override.PyType
+		}
+	}
+
 	switch req.Settings.Engine {
 	case "postgresql":
 		return postgresTypeWithConfig(req, col, conf)

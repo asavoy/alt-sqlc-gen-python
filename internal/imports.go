@@ -97,6 +97,32 @@ func (i *importer) modelImportSpecs() (map[string]importSpec, map[string]importS
 
 	pkg := make(map[string]importSpec)
 
+	overrideModules := make(map[string]bool)
+	for _, override := range i.C.Overrides {
+		if override.PyImport != "" {
+			overrideModules[override.PyImport] = true
+		}
+	}
+	overrideImports := make(map[string]bool)
+	for _, model := range i.Models {
+		for _, field := range model.Fields {
+			if strings.Contains(field.Type.InnerType, ".") {
+				lastDot := strings.LastIndex(field.Type.InnerType, ".")
+				if lastDot > 0 {
+					module := field.Type.InnerType[:lastDot]
+					if overrideModules[module] {
+						overrideImports[module] = true
+					}
+				}
+			}
+		}
+	}
+	for module := range overrideImports {
+		if _, exists := std[module]; !exists {
+			pkg[module] = importSpec{Module: module}
+		}
+	}
+
 	return std, pkg
 }
 
@@ -164,6 +190,74 @@ func (i *importer) queryImportSpecs(fileName string) (map[string]importSpec, map
 		queryValueModelImports(q.Ret)
 		for _, qv := range q.Args {
 			queryValueModelImports(qv)
+		}
+	}
+
+	overrideModules := make(map[string]bool)
+	for _, override := range i.C.Overrides {
+		if override.PyImport != "" {
+			overrideModules[override.PyImport] = true
+		}
+	}
+	overrideImports := make(map[string]bool)
+	for _, q := range i.Queries {
+		if q.SourceName != fileName {
+			continue
+		}
+
+		if q.Ret.IsStruct() && q.Ret.EmitStruct() {
+			for _, field := range q.Ret.Struct.Fields {
+				if strings.Contains(field.Type.InnerType, ".") {
+					lastDot := strings.LastIndex(field.Type.InnerType, ".")
+					if lastDot > 0 {
+						module := field.Type.InnerType[:lastDot]
+						if overrideModules[module] {
+							overrideImports[module] = true
+						}
+					}
+				}
+			}
+		} else if !q.Ret.isEmpty() {
+			if strings.Contains(q.Ret.Typ.InnerType, ".") {
+				lastDot := strings.LastIndex(q.Ret.Typ.InnerType, ".")
+				if lastDot > 0 {
+					module := q.Ret.Typ.InnerType[:lastDot]
+					if overrideModules[module] {
+						overrideImports[module] = true
+					}
+				}
+			}
+		}
+
+		for _, arg := range q.Args {
+			if arg.IsStruct() && arg.EmitStruct() {
+				for _, field := range arg.Struct.Fields {
+					if strings.Contains(field.Type.InnerType, ".") {
+						lastDot := strings.LastIndex(field.Type.InnerType, ".")
+						if lastDot > 0 {
+							module := field.Type.InnerType[:lastDot]
+							if overrideModules[module] {
+								overrideImports[module] = true
+							}
+						}
+					}
+				}
+			} else if !arg.isEmpty() {
+				if strings.Contains(arg.Typ.InnerType, ".") {
+					lastDot := strings.LastIndex(arg.Typ.InnerType, ".")
+					if lastDot > 0 {
+						module := arg.Typ.InnerType[:lastDot]
+						if overrideModules[module] {
+							overrideImports[module] = true
+						}
+					}
+				}
+			}
+		}
+	}
+	for module := range overrideImports {
+		if _, exists := std[module]; !exists {
+			pkg[module] = importSpec{Module: module}
 		}
 	}
 
