@@ -250,6 +250,8 @@ func pyInnerType(req *plugin.GenerateRequest, col *plugin.Column, conf Config) s
 	switch req.Settings.Engine {
 	case "postgresql":
 		return postgresTypeWithConfig(req, col, conf)
+	case "sqlite":
+		return sqliteTypeWithConfig(req, col, conf)
 	default:
 		log.Println("unsupported engine type")
 		return "Any"
@@ -926,7 +928,7 @@ func querierClassDef() *pyast.ClassDef {
 									Arg: "self",
 								},
 								{
-									Arg:        "conn",
+									Arg: "conn",
 									Annotation: poet.BinOp(
 										typeRefNode("sqlalchemy", "engine", "Connection"),
 										poet.BitOr(),
@@ -980,7 +982,7 @@ func asyncQuerierClassDef() *pyast.ClassDef {
 									Arg: "self",
 								},
 								{
-									Arg:        "conn",
+									Arg: "conn",
 									Annotation: poet.BinOp(
 										typeRefNode("sqlalchemy", "ext", "asyncio", "AsyncConnection"),
 										poet.BitOr(),
