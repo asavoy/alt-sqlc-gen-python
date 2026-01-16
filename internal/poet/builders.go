@@ -108,3 +108,14 @@ func Yield(value *ast.Node) *ast.Node {
 		},
 	}
 }
+
+func TypeVar(name string, bound *ast.Node) *ast.Node {
+	return &ast.Node{
+		Node: &ast.Node_TypeVar{
+			TypeVar: &ast.TypeVar{
+				Name:  name,
+				Bound: bound,
+			},
+		},
+	}
+}

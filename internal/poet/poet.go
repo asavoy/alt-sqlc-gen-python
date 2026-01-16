@@ -182,6 +182,13 @@ func Node(node proto) *ast.Node {
 			},
 		}
 
+	case *ast.TypeVar:
+		return &ast.Node{
+			Node: &ast.Node_TypeVar{
+				TypeVar: n,
+			},
+		}
+
 	default:
 		panic(n)
 	}
