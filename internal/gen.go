@@ -39,7 +39,39 @@ type pyType struct {
 }
 
 func (t pyType) Annotation() *pyast.Node {
-	ann := poet.Name(t.InnerType)
+	var ann *pyast.Node
+	// Handle dotted names like "models.EnumName" by converting to attribute access
+	if strings.Contains(t.InnerType, ".") {
+		parts := strings.Split(t.InnerType, ".")
+		ann = typeRefNode(parts[0], parts[1:]...)
+	} else {
+		ann = poet.Name(t.InnerType)
+	}
+	if t.IsArray {
+		ann = subscriptNode("list", ann)
+	}
+	if t.IsNull {
+		return poet.BinOp(ann, poet.BitOr(), poet.Constant(nil))
+	}
+	return ann
+}
+
+// AnnotationWithModelsPrefix returns the type annotation, adding "models." prefix
+// if the type appears to be a custom type (enum or model) without a module prefix.
+// This is needed when the type comes from a model struct that has been stripped of its prefix.
+func (t pyType) AnnotationWithModelsPrefix() *pyast.Node {
+	var ann *pyast.Node
+	// If type already has a dot, use it as-is
+	if strings.Contains(t.InnerType, ".") {
+		parts := strings.Split(t.InnerType, ".")
+		ann = typeRefNode(parts[0], parts[1:]...)
+	} else if len(t.InnerType) > 0 && t.InnerType[0] >= 'A' && t.InnerType[0] <= 'Z' {
+		// Type starts with uppercase letter and has no dots - likely a custom type
+		// Add models prefix
+		ann = typeRefNode("models", t.InnerType)
+	} else {
+		ann = poet.Name(t.InnerType)
+	}
 	if t.IsArray {
 		ann = subscriptNode("list", ann)
 	}
@@ -116,6 +148,9 @@ func (v QueryValue) RowNode(rowVar string) *pyast.Node {
 	call := &pyast.Call{
 		Func: v.Annotation(),
 	}
+	// If this struct is not being emitted (i.e., it's from models.py),
+	// we need to add "models." prefix to custom types in casts
+	useModelsPrefix := !v.Emit
 	for _, f := range v.Struct.Fields {
 		var value *pyast.Node
 		if f.EmbedStruct != nil {
@@ -124,10 +159,16 @@ func (v QueryValue) RowNode(rowVar string) *pyast.Node {
 				Func: typeRefNode("models", f.EmbedStruct.Name),
 			}
 			for i, embedField := range f.EmbedStruct.Fields {
+				var castType *pyast.Node
+				if useModelsPrefix {
+					castType = embedField.Type.AnnotationWithModelsPrefix()
+				} else {
+					castType = embedField.Type.Annotation()
+				}
 				embedCall.Keywords = append(embedCall.Keywords, &pyast.Keyword{
 					Arg: embedField.Name,
 					Value: castNode(
-						embedField.Type.Annotation(),
+						castType,
 						subscriptNode(
 							rowVar,
 							constantInt(f.ColumnOffset+i),
@@ -142,8 +183,14 @@ func (v QueryValue) RowNode(rowVar string) *pyast.Node {
 			}
 		} else {
 			// Regular scalar field - wrap with cast
+			var castType *pyast.Node
+			if useModelsPrefix {
+				castType = f.Type.AnnotationWithModelsPrefix()
+			} else {
+				castType = f.Type.Annotation()
+			}
 			value = castNode(
-				f.Type.Annotation(),
+				castType,
 				subscriptNode(
 					rowVar,
 					constantInt(f.ColumnOffset),
