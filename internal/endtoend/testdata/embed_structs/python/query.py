@@ -41,10 +41,10 @@ class ListBooksWithAuthorsRow(pydantic.BaseModel):
     authors: models.Author
 
 
-class Querier:
-    _conn: sqlalchemy.engine.Connection | sqlalchemy.orm.Session
+class Querier[T: sqlalchemy.engine.Connection | sqlalchemy.orm.Session]:
+    _conn: T
 
-    def __init__(self, conn: sqlalchemy.engine.Connection | sqlalchemy.orm.Session):
+    def __init__(self, conn: T):
         self._conn = conn
 
     def get_book_with_author(self, *, id: int) -> GetBookWithAuthorRow | None:

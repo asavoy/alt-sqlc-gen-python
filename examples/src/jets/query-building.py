@@ -25,10 +25,10 @@ SELECT id, name FROM pilots LIMIT 5
 """
 
 
-class AsyncQuerier:
-    _conn: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession
+class AsyncQuerier[T: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession]:
+    _conn: T
 
-    def __init__(self, conn: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession):
+    def __init__(self, conn: T):
         self._conn = conn
 
     async def count_pilots(self) -> int | None:

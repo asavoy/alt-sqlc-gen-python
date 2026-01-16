@@ -42,10 +42,10 @@ WHERE slug = :p1
 """
 
 
-class AsyncQuerier:
-    _conn: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession
+class AsyncQuerier[T: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession]:
+    _conn: T
 
-    def __init__(self, conn: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession):
+    def __init__(self, conn: T):
         self._conn = conn
 
     async def create_city(self, *, name: str, slug: str) -> models.City | None:

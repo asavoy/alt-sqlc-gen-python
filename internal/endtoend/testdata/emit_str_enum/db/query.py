@@ -38,10 +38,10 @@ ORDER BY title
 """
 
 
-class Querier:
-    _conn: sqlalchemy.engine.Connection | sqlalchemy.orm.Session
+class Querier[T: sqlalchemy.engine.Connection | sqlalchemy.orm.Session]:
+    _conn: T
 
-    def __init__(self, conn: sqlalchemy.engine.Connection | sqlalchemy.orm.Session):
+    def __init__(self, conn: T):
         self._conn = conn
 
     def create_book(self, *, title: str, status: models.BookStatus | None) -> models.Book | None:
@@ -77,10 +77,10 @@ class Querier:
             )
 
 
-class AsyncQuerier:
-    _conn: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession
+class AsyncQuerier[T: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession]:
+    _conn: T
 
-    def __init__(self, conn: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession):
+    def __init__(self, conn: T):
         self._conn = conn
 
     async def create_book(self, *, title: str, status: models.BookStatus | None) -> models.Book | None:

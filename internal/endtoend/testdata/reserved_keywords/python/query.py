@@ -30,10 +30,10 @@ SELECT id, class, import, def, pass, yield FROM items WHERE class = :p1
 """
 
 
-class Querier:
-    _conn: sqlalchemy.engine.Connection | sqlalchemy.orm.Session
+class Querier[T: sqlalchemy.engine.Connection | sqlalchemy.orm.Session]:
+    _conn: T
 
-    def __init__(self, conn: sqlalchemy.engine.Connection | sqlalchemy.orm.Session):
+    def __init__(self, conn: T):
         self._conn = conn
 
     def create_item(self, arg: CreateItemParams) -> models.Item | None:

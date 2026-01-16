@@ -27,10 +27,10 @@ SELECT id, name, email, age, created_at FROM users ORDER BY id
 """
 
 
-class Querier:
-    _conn: sqlalchemy.engine.Connection | sqlalchemy.orm.Session
+class Querier[T: sqlalchemy.engine.Connection | sqlalchemy.orm.Session]:
+    _conn: T
 
-    def __init__(self, conn: sqlalchemy.engine.Connection | sqlalchemy.orm.Session):
+    def __init__(self, conn: T):
         self._conn = conn
 
     def create_user(self, *, name: str, email: str | None, age: int | None, created_at: pydantic.AwareDatetime) -> models.User | None:

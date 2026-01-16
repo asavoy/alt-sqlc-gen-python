@@ -111,10 +111,10 @@ WHERE book_id = :p3
 """
 
 
-class AsyncQuerier:
-    _conn: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession
+class AsyncQuerier[T: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession]:
+    _conn: T
 
-    def __init__(self, conn: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession):
+    def __init__(self, conn: T):
         self._conn = conn
 
     async def books_by_tags(self, *, dollar_1: list[str]) -> AsyncIterator[BooksByTagsRow]:
