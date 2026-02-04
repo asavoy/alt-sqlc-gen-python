@@ -1,3 +1,5 @@
+# alt-sqlc-gen-python
+
 ## Fork notes
 
 This is a fork of [sqlc-gen-python](https://github.com/sqlc-dev/sqlc-gen-python) v1.3.0 with the following changes:

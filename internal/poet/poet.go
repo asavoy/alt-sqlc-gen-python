@@ -1,7 +1,7 @@
 package poet
 
 import (
-	"github.com/sqlc-dev/sqlc-gen-python/internal/ast"
+	"github.com/asavoy/alt-sqlc-gen-python/internal/ast"
 )
 
 type proto interface {
