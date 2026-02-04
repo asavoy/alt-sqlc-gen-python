@@ -959,13 +959,13 @@ func querierClassDef() *pyast.ClassDef {
 	typeVar := poet.TypeVar("T", boundType)
 
 	return &pyast.ClassDef{
-		Name: "Querier",
+		Name:       "Querier",
 		TypeParams: []*pyast.Node{typeVar},
 		Body: []*pyast.Node{
 			{
 				Node: &pyast.Node_AnnAssign{
 					AnnAssign: &pyast.AnnAssign{
-						Target: &pyast.Name{Id: "_conn"},
+						Target:     &pyast.Name{Id: "_conn"},
 						Annotation: poet.Name("T"),
 					},
 				},
@@ -1016,13 +1016,13 @@ func asyncQuerierClassDef() *pyast.ClassDef {
 	typeVar := poet.TypeVar("T", boundType)
 
 	return &pyast.ClassDef{
-		Name: "AsyncQuerier",
+		Name:       "AsyncQuerier",
 		TypeParams: []*pyast.Node{typeVar},
 		Body: []*pyast.Node{
 			{
 				Node: &pyast.Node_AnnAssign{
 					AnnAssign: &pyast.AnnAssign{
-						Target: &pyast.Name{Id: "_conn"},
+						Target:     &pyast.Name{Id: "_conn"},
 						Annotation: poet.Name("T"),
 					},
 				},
