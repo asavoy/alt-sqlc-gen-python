@@ -60,9 +60,9 @@ func ExpectedOutput(t *testing.T, dir string) []byte {
 }
 
 func TestGenerate(t *testing.T) {
-	wasmpath := filepath.Join("..", "..", "bin", "sqlc-gen-python.wasm")
+	wasmpath := filepath.Join("..", "..", "bin", "alt-sqlc-gen-python.wasm")
 	if _, err := os.Stat(wasmpath); err != nil {
-		t.Fatalf("sqlc-gen-python.wasm not found: %s", err)
+		t.Fatalf("alt-sqlc-gen-python.wasm not found: %s", err)
 	}
 
 	sqlc := LookPath(t, "sqlc-dev", "sqlc")

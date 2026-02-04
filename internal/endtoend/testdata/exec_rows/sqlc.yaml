@@ -2,7 +2,7 @@ version: '2'
 plugins:
 - name: py
   wasm:
-    url: file://../../../../bin/sqlc-gen-python.wasm
+    url: file://../../../../bin/alt-sqlc-gen-python.wasm
 sql:
 - schema: schema.sql
   queries: query.sql
