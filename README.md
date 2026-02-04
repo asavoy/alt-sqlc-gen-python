@@ -38,6 +38,139 @@ sql:
           emit_async_querier: true
 ```
 
+### Sync and Async Queriers
+
+Options: `emit_sync_querier`, `emit_async_querier`
+
+These options generate `Querier` and/or `AsyncQuerier` classes that wrap a SQLAlchemy connection and expose a method for each SQL query.
+
+- `Querier` accepts `sqlalchemy.engine.Connection | sqlalchemy.orm.Session`
+- `AsyncQuerier` accepts `sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession`
+
+The query command (`:one`, `:many`, `:exec`, `:execrows`, `:execresult`) determines the method signature:
+
+| Command | Sync return type | Async return type |
+|---|---|---|
+| `:one` | `Model \| None` | `Model \| None` |
+| `:many` | `Iterator[Model]` | `AsyncIterator[Model]` |
+| `:exec` | `None` | `None` |
+| `:execrows` | `int` | `int` |
+| `:execresult` | `sqlalchemy.engine.Result` | `sqlalchemy.engine.Result` |
+
+Example generated code with both options enabled:
+
+```py
+class Querier[T: sqlalchemy.engine.Connection | sqlalchemy.orm.Session]:
+    _conn: T
+
+    def __init__(self, conn: T):
+        self._conn = conn
+
+    def get_user(self, *, id: int) -> models.User | None:
+        row = self._conn.execute(sqlalchemy.text(GET_USER), {"p1": id}).first()
+        if row is None:
+            return None
+        return models.User(
+            id=cast(int, row[0]),
+            name=cast(str, row[1]),
+        )
+
+    def list_users(self) -> Iterator[models.User]:
+        result = self._conn.execute(sqlalchemy.text(LIST_USERS))
+        for row in result:
+            yield models.User(
+                id=cast(int, row[0]),
+                name=cast(str, row[1]),
+            )
+
+
+class AsyncQuerier[T: sqlalchemy.ext.asyncio.AsyncConnection | sqlalchemy.ext.asyncio.AsyncSession]:
+    _conn: T
+
+    def __init__(self, conn: T):
+        self._conn = conn
+
+    async def get_user(self, *, id: int) -> models.User | None:
+        row = (await self._conn.execute(sqlalchemy.text(GET_USER), {"p1": id})).first()
+        if row is None:
+            return None
+        return models.User(
+            id=cast(int, row[0]),
+            name=cast(str, row[1]),
+        )
+
+    async def list_users(self) -> AsyncIterator[models.User]:
+        result = await self._conn.stream(sqlalchemy.text(LIST_USERS))
+        async for row in result:
+            yield models.User(
+                id=cast(int, row[0]),
+                name=cast(str, row[1]),
+            )
+```
+
+### Embedded Structs with `sqlc.embed()`
+
+When a query joins multiple tables, you can use `sqlc.embed()` to nest the full model structs in the result rather than flattening all columns.
+
+Given this schema:
+
+```sql
+CREATE TABLE authors (
+    id   BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    bio  TEXT
+);
+
+CREATE TABLE books (
+    id        BIGSERIAL PRIMARY KEY,
+    author_id BIGINT NOT NULL REFERENCES authors(id),
+    title     TEXT NOT NULL,
+    isbn      TEXT
+);
+```
+
+And this query:
+
+```sql
+-- name: GetBookWithAuthor :one
+SELECT
+    sqlc.embed(books),
+    sqlc.embed(authors)
+FROM books
+JOIN authors ON books.author_id = authors.id
+WHERE books.id = $1;
+```
+
+The plugin generates a row type with nested model fields:
+
+```py
+class GetBookWithAuthorRow(pydantic.BaseModel):
+    books: models.Book
+    authors: models.Author
+```
+
+And the querier method constructs each embedded struct from the corresponding columns:
+
+```py
+def get_book_with_author(self, *, id: int) -> GetBookWithAuthorRow | None:
+    row = self._conn.execute(sqlalchemy.text(GET_BOOK_WITH_AUTHOR), {"p1": id}).first()
+    if row is None:
+        return None
+    return GetBookWithAuthorRow(
+        books=models.Book(
+            id=cast(int, row[0]),
+            author_id=cast(int, row[1]),
+            title=cast(str, row[2]),
+            isbn=cast(str | None, row[3]),
+        ),
+        authors=models.Author(
+            id=cast(int, row[4]),
+            name=cast(str, row[5]),
+            bio=cast(str | None, row[6]),
+        ),
+    )
+```
+
 ### Emit Pydantic Models instead of `dataclasses`
 
 Option: `emit_pydantic_models`
