@@ -382,7 +382,6 @@ func (q Query) AddBatchArgs(args *pyast.Arguments) {
 	})
 }
 
-
 func colTypeOverride(req *plugin.GenerateRequest, col *plugin.Column, conf Config) *Override {
 	if col.Table == nil {
 		return nil
