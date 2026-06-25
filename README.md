@@ -26,8 +26,8 @@ version: "2"
 plugins:
   - name: py
     wasm:
-      url: https://github.com/asavoy/alt-sqlc-gen-python/releases/download/v0.1.0/alt-sqlc-gen-python.wasm
-      sha256: TODO
+      url: https://github.com/asavoy/alt-sqlc-gen-python/releases/download/v0.2.0/alt-sqlc-gen-python.wasm
+      sha256: ae1210f5b91e428b596e6061f4d8b4717ed22c7f5f456c4d8a5f19d59a73558e
 sql:
   - schema: "schema.sql"
     queries: "query.sql"
@@ -377,3 +377,42 @@ sql:
               py_type: "UUID"
               py_import: "uuid"
 ```
+
+## Release process
+
+1. Build the wasm plugin:
+
+   ```sh
+   make bin/alt-sqlc-gen-python.wasm
+   ```
+
+2. Record the artifact checksum:
+
+   ```sh
+   shasum -a 256 bin/alt-sqlc-gen-python.wasm
+   ```
+
+3. Run the test suite:
+
+   ```sh
+   go test ./...
+   ```
+
+4. Update the README usage example with the new release tag and checksum, then commit the README change.
+
+5. Tag the release commit:
+
+   ```sh
+   git tag vX.Y.Z
+   ```
+
+6. Push the commit and tag:
+
+   ```sh
+   git push origin main
+   git push origin vX.Y.Z
+   ```
+
+7. Create the GitHub release and upload `bin/alt-sqlc-gen-python.wasm`.
+
+8. Verify the published release URL and checksum from the README.
