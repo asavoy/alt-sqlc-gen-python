@@ -34,7 +34,6 @@ type importer struct {
 
 func structUses(name string, s Struct) bool {
 	for _, f := range s.Fields {
-		// Build full type name from Module.Name
 		fullName := f.Type.Name
 		if f.Type.Module != "" {
 			fullName = f.Type.Module + "." + f.Type.Name
@@ -44,6 +43,12 @@ func structUses(name string, s Struct) bool {
 		}
 	}
 	return false
+}
+
+func structTypes(s Struct, visit func(pyType)) {
+	for _, f := range s.Fields {
+		visit(f.Type)
+	}
 }
 
 func queryValueUses(name string, qv QueryValue) bool {
@@ -64,6 +69,28 @@ func queryValueUses(name string, qv QueryValue) bool {
 		}
 	}
 	return false
+}
+
+func queryValueTypes(qv QueryValue, visit func(pyType)) {
+	if qv.isEmpty() {
+		return
+	}
+	if qv.IsStruct() {
+		structTypes(*qv.Struct, visit)
+		return
+	}
+	visit(qv.Typ)
+}
+
+func addTypeImport(std, pkg map[string]importSpec, typ pyType) {
+	if typ.Module == "" || typ.Module == "models" || typ.Module == "typing" {
+		return
+	}
+
+	if _, exists := std[typ.Module]; exists {
+		return
+	}
+	pkg[typ.Module] = importSpec{Module: typ.Module}
 }
 
 func (i *importer) Imports(fileName string) []string {
@@ -95,24 +122,8 @@ func (i *importer) modelImportSpecs() (map[string]importSpec, map[string]importS
 
 	pkg := make(map[string]importSpec)
 
-	overrideModules := make(map[string]bool)
-	for _, override := range i.C.Overrides {
-		if override.PyImport != "" {
-			overrideModules[override.PyImport] = true
-		}
-	}
-	overrideImports := make(map[string]bool)
 	for _, model := range i.Models {
-		for _, field := range model.Fields {
-			if field.Type.Module != "" && overrideModules[field.Type.Module] {
-				overrideImports[field.Type.Module] = true
-			}
-		}
-	}
-	for module := range overrideImports {
-		if _, exists := std[module]; !exists {
-			pkg[module] = importSpec{Module: module}
-		}
+		structTypes(model, func(typ pyType) { addTypeImport(std, pkg, typ) })
 	}
 
 	return std, pkg
@@ -196,47 +207,15 @@ func (i *importer) queryImportSpecs(fileName string) (map[string]importSpec, map
 		}
 	}
 
-	overrideModules := make(map[string]bool)
-	for _, override := range i.C.Overrides {
-		if override.PyImport != "" {
-			overrideModules[override.PyImport] = true
-		}
-	}
-	overrideImports := make(map[string]bool)
 	for _, q := range i.Queries {
 		if q.SourceName != fileName {
 			continue
 		}
 
-		if q.Ret.IsStruct() && q.Ret.EmitStruct() {
-			for _, field := range q.Ret.Struct.Fields {
-				if field.Type.Module != "" && overrideModules[field.Type.Module] {
-					overrideImports[field.Type.Module] = true
-				}
-			}
-		} else if !q.Ret.isEmpty() {
-			if q.Ret.Typ.Module != "" && overrideModules[q.Ret.Typ.Module] {
-				overrideImports[q.Ret.Typ.Module] = true
-			}
-		}
+		queryValueTypes(q.Ret, func(typ pyType) { addTypeImport(std, pkg, typ) })
 
 		for _, arg := range q.Args {
-			if arg.IsStruct() && arg.EmitStruct() {
-				for _, field := range arg.Struct.Fields {
-					if field.Type.Module != "" && overrideModules[field.Type.Module] {
-						overrideImports[field.Type.Module] = true
-					}
-				}
-			} else if !arg.isEmpty() {
-				if arg.Typ.Module != "" && overrideModules[arg.Typ.Module] {
-					overrideImports[arg.Typ.Module] = true
-				}
-			}
-		}
-	}
-	for module := range overrideImports {
-		if _, exists := std[module]; !exists {
-			pkg[module] = importSpec{Module: module}
+			queryValueTypes(arg, func(typ pyType) { addTypeImport(std, pkg, typ) })
 		}
 	}
 

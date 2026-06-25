@@ -5,6 +5,7 @@
 import datetime
 from typing import cast
 
+import pydantic
 import sqlalchemy
 import sqlalchemy.orm
 

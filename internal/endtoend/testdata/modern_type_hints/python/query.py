@@ -5,6 +5,7 @@
 from collections.abc import Iterator
 from typing import cast
 
+import pydantic
 import sqlalchemy
 import sqlalchemy.orm
 
