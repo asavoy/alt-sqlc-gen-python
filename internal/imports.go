@@ -34,6 +34,12 @@ type importer struct {
 
 func structUses(name string, s Struct) bool {
 	for _, f := range s.Fields {
+		if f.EmbedStruct != nil {
+			if structUses(name, *f.EmbedStruct) {
+				return true
+			}
+			continue
+		}
 		fullName := f.Type.Name
 		if f.Type.Module != "" {
 			fullName = f.Type.Module + "." + f.Type.Name
@@ -47,6 +53,10 @@ func structUses(name string, s Struct) bool {
 
 func structTypes(s Struct, visit func(pyType)) {
 	for _, f := range s.Fields {
+		if f.EmbedStruct != nil {
+			structTypes(*f.EmbedStruct, visit)
+			continue
+		}
 		visit(f.Type)
 	}
 }

@@ -1,0 +1,15 @@
+version: '2'
+plugins:
+- name: py
+  wasm:
+    url: file://../../../../bin/alt-sqlc-gen-python.wasm
+sql:
+- schema: schema.sql
+  queries: query.sql
+  engine: postgresql
+  codegen:
+  - plugin: py
+    out: python
+    options:
+      package: python
+      emit_sync_querier: true
